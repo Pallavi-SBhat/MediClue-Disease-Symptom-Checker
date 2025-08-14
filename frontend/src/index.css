@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+.console-warning[data-clerk-warning] {
+  display: none !important;
+}
