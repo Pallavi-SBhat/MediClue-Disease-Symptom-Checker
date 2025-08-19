@@ -17,7 +17,7 @@ import uuid
 
 app = Flask(__name__)
 app.secret_key = 'sk_test_4FlxbLx83f55UTOsFo51UNtDaN2raetFlQrcwnHsCR'
-CORS(app, supports_credentials=True, origins=['http://localhost:3000', 'http://127.0.0.1:3000'])
+CORS(app, supports_credentials=True, origins=['http://localhost:3000', 'http://127.0.0.1:5173'])
 
 class MedicalDatabase:
     def __init__(self):

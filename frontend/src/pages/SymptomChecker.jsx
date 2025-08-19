@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
-import { Search, Plus, Trash2, ArrowRight, User } from 'lucide-react';
+import { Search, Plus, Trash2, ArrowRight, User, AlertCircle } from 'lucide-react';
 
 const SymptomChecker = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+  const [availableSymptoms, setAvailableSymptoms] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [duration, setDuration] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [symptomsLoading, setSymptomsLoading] = useState(true);
   const navigate = useNavigate();
 
   // Get user data from Clerk with localStorage fallback
@@ -37,7 +40,7 @@ const SymptomChecker = () => {
   }
 
   // Pre-fill form with user profile data
-  React.useEffect(() => {
+  useEffect(() => {
     if (userProfile.dateOfBirth) {
       const birthDate = new Date(userProfile.dateOfBirth);
       const today = new Date();
@@ -49,137 +52,82 @@ const SymptomChecker = () => {
     }
   }, [userProfile]);
 
-  // Mock symptoms data
-  const mockSymptoms = [
-    { 
-      id: '1', 
-      name: 'headache', 
-      description: 'Pain in the head or upper neck',
-      bodyPart: 'head',
-      severity: 'moderate',
-      commonNames: ['head pain', 'migraine', 'head pressure'],
-      keywords: ['pounding head', 'throbbing', 'skull pain', 'temple pain']
-    },
-    { 
-      id: '2', 
-      name: 'fever', 
-      description: 'Elevated body temperature',
-      bodyPart: 'whole body',
-      severity: 'moderate',
-      commonNames: ['high temperature', 'hot', 'temperature'],
-      keywords: ['burning up', 'feel hot', 'sweating', 'chills']
-    },
-    { 
-      id: '3', 
-      name: 'cough', 
-      description: 'Sudden expulsion of air from the lungs',
-      bodyPart: 'respiratory',
-      severity: 'mild',
-      commonNames: ['chest cough', 'dry cough', 'wet cough'],
-      keywords: ['hacking', 'throat tickle', 'chest congestion', 'phlegm']
-    },
-    { 
-      id: '4', 
-      name: 'fatigue', 
-      description: 'Feeling of tiredness or exhaustion',
-      bodyPart: 'whole body',
-      severity: 'mild',
-      commonNames: ['tired', 'exhausted', 'no energy', 'weakness'],
-      keywords: ['sleepy', 'drained', 'worn out', 'lethargic', 'low energy']
-    },
-    { 
-      id: '5', 
-      name: 'shortness of breath', 
-      description: 'Difficulty breathing',
-      bodyPart: 'respiratory',
-      severity: 'severe',
-      commonNames: ['breathless', 'can\'t breathe', 'breathing difficulty'],
-      keywords: ['hard to breathe', 'out of breath', 'gasping', 'wheezing']
-    },
-    { 
-      id: '6', 
-      name: 'nausea', 
-      description: 'Feeling of sickness with an inclination to vomit',
-      bodyPart: 'stomach',
-      severity: 'moderate',
-      commonNames: ['sick feeling', 'queasy', 'upset stomach'],
-      keywords: ['want to throw up', 'stomach sick', 'feel sick', 'stomach upset']
-    },
-    { 
-      id: '7', 
-      name: 'dizziness', 
-      description: 'Feeling faint, woozy, or unsteady',
-      bodyPart: 'head',
-      severity: 'moderate',
-      commonNames: ['lightheaded', 'vertigo', 'spinning', 'unsteady'],
-      keywords: ['room spinning', 'off balance', 'woozy', 'head spinning']
-    },
-    { 
-      id: '8', 
-      name: 'muscle pain', 
-      description: 'Pain in muscles',
-      bodyPart: 'whole body',
-      severity: 'moderate',
-      commonNames: ['muscle ache', 'body pain', 'sore muscles'],
-      keywords: ['aching muscles', 'muscle soreness', 'body aches']
-    },
-    { 
-      id: '9', 
-      name: 'joint pain', 
-      description: 'Pain in joints',
-      bodyPart: 'whole body',
-      severity: 'moderate',
-      commonNames: ['joint ache', 'arthritis pain', 'stiff joints'],
-      keywords: ['joint stiffness', 'joint swelling', 'joint ache']
-    },
-    { 
-      id: '10', 
-      name: 'chest pain', 
-      description: 'Pain in the chest area',
-      bodyPart: 'chest',
-      severity: 'severe',
-      commonNames: ['chest discomfort', 'chest pressure', 'heart pain'],
-      keywords: ['chest tightness', 'chest burning', 'chest pressure']
-    },
-    { 
-      id: '11', 
-      name: 'sore throat', 
-      description: 'Pain or irritation in the throat',
-      bodyPart: 'throat',
-      severity: 'mild',
-      commonNames: ['throat pain', 'scratchy throat'],
-      keywords: ['throat burning', 'swollen throat', 'throat irritation']
-    },
-    { 
-      id: '12', 
-      name: 'runny nose', 
-      description: 'Nasal discharge',
-      bodyPart: 'nose',
-      severity: 'mild',
-      commonNames: ['stuffy nose', 'congestion', 'blocked nose'],
-      keywords: ['nasal congestion', 'nose blocked', 'sniffles']
+  // Fetch available symptoms from Flask API
+  useEffect(() => {
+    loadSymptoms();
+  }, []);
+
+  const loadSymptoms = async () => {
+    try {
+      setSymptomsLoading(true);
+      setError('');
+      
+      // You can import these functions from the config file
+      const response = await fetch('http://localhost:4000/api/symptoms', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch symptoms: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.symptoms) {
+        // Transform API data to match component expectations
+        const transformedSymptoms = data.symptoms.map(symptom => ({
+          id: symptom.id,
+          name: symptom.name,
+          description: symptom.description,
+          category: symptom.category,
+          bodyPart: symptom.category,
+          severity: 'moderate', // Default as API doesn't provide this
+          commonNames: [symptom.name], // Use name as common name
+          keywords: [symptom.description.toLowerCase()] // Use description as keywords
+        }));
+        
+        setAvailableSymptoms(transformedSymptoms);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('Error fetching symptoms:', error);
+      setError(`Failed to load symptoms: ${error.message}. Using offline symptom list.`);
+      
+      // Fallback to basic symptoms if API fails
+      setAvailableSymptoms([
+        { id: '1', name: 'headache', description: 'Pain in the head or upper neck', category: 'neurological' },
+        { id: '2', name: 'fever', description: 'Elevated body temperature', category: 'general' },
+        { id: '3', name: 'cough', description: 'Sudden expulsion of air from the lungs', category: 'respiratory' },
+        { id: '4', name: 'fatigue', description: 'Feeling of tiredness or exhaustion', category: 'general' },
+        { id: '5', name: 'nausea', description: 'Feeling of sickness with inclination to vomit', category: 'gastrointestinal' },
+        { id: '6', name: 'dizziness', description: 'Feeling faint, woozy, or unsteady', category: 'neurological' },
+        { id: '7', name: 'muscle pain', description: 'Pain in muscles', category: 'musculoskeletal' },
+        { id: '8', name: 'shortness of breath', description: 'Difficulty breathing', category: 'respiratory' }
+      ]);
+    } finally {
+      setSymptomsLoading(false);
     }
-  ];
+  };
 
   const getFilteredSymptoms = () => {
     if (searchTerm.length < 2) return [];
     
     const searchWords = searchTerm.toLowerCase().split(' ');
     
-    return mockSymptoms.filter(symptom => {
+    return availableSymptoms.filter(symptom => {
       if (selectedSymptoms.includes(symptom.name)) return false;
       
       return searchWords.every(word => {
         const matchesName = symptom.name.toLowerCase().includes(word);
-        const matchesCommonNames = symptom.commonNames?.some(name => 
-          name.toLowerCase().includes(word)
-        );
-        const matchesKeywords = symptom.keywords?.some(keyword => 
-          keyword.toLowerCase().includes(word)
-        );
         const matchesDescription = symptom.description.toLowerCase().includes(word);
+        const matchesCategory = symptom.category?.toLowerCase().includes(word);
 
-        return matchesName || matchesCommonNames || matchesKeywords || matchesDescription;
+        return matchesName || matchesDescription || matchesCategory;
       });
     });
   };
@@ -200,116 +148,71 @@ const SymptomChecker = () => {
       setCurrentStep(2);
     } else if (currentStep === 2 && age && gender && duration) {
       setIsLoading(true);
+      setError('');
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock predictions based on symptoms
-      const predictions = generateMockPredictions(selectedSymptoms);
-      
-      // Store results and navigate
-      sessionStorage.setItem('medicalData', JSON.stringify({
-        symptoms: selectedSymptoms,
-        age: parseInt(age),
-        gender,
-        duration,
-        userId: user?.id,
-        userProfile: userProfile,
-        predictions,
-        timestamp: new Date().toISOString()
-      }));
-      
-      navigate('/results');
-      setIsLoading(false);
-    }
-  };
+      try {
+        // Prepare data for API call
+        const apiPayload = {
+          symptoms: selectedSymptoms,
+          age: parseInt(age),
+          gender: gender,
+          duration: duration,
+          userId: user?.id,
+          userProfile: userProfile
+        };
 
-  const generateMockPredictions = (symptoms) => {
-    const diseaseDatabase = [
-      {
-        disease: 'Common Cold',
-        triggerSymptoms: ['cough', 'runny nose', 'sore throat', 'fatigue'],
-        data: {
-          description: 'A viral infection of the upper respiratory tract',
-          severity: 'mild',
-          remedies: [
-            'Rest and get plenty of sleep',
-            'Drink lots of fluids',
-            'Use a humidifier',
-            'Take over-the-counter pain relievers'
-          ],
-          specialist: 'General Practitioner',
-          urgency: 'low'
+        console.log('Sending API request:', apiPayload);
+
+        // Call Flask API for disease prediction
+        const response = await fetch('http://localhost:4000/api/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies for session handling
+          body: JSON.stringify(apiPayload)
+        });
+
+        console.log('API response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API error response:', errorText);
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
         }
-      },
-      {
-        disease: 'Flu',
-        triggerSymptoms: ['fever', 'headache', 'muscle pain', 'fatigue', 'cough'],
-        data: {
-          description: 'A contagious respiratory illness caused by influenza viruses',
-          severity: 'moderate',
-          remedies: [
-            'Rest and stay hydrated',
-            'Take antiviral medications if prescribed',
-            'Use fever reducers',
-            'Avoid contact with others'
-          ],
-          specialist: 'General Practitioner',
-          urgency: 'medium'
+
+        const result = await response.json();
+        console.log('API response data:', result);
+        
+        if (result.success && result.predictions) {
+          // Store results and navigate to results page
+          const medicalData = {
+            symptoms: selectedSymptoms,
+            age: parseInt(age),
+            gender,
+            duration,
+            userId: user?.id,
+            userProfile: userProfile,
+            predictions: result.predictions,
+            sessionId: result.session_id,
+            timestamp: result.timestamp || new Date().toISOString(),
+            patientInfo: result.patient_info,
+            inputSymptoms: result.input_symptoms
+          };
+
+          console.log('Storing medical data:', medicalData);
+          sessionStorage.setItem('medicalData', JSON.stringify(medicalData));
+          navigate('/results');
+        } else {
+          throw new Error(result.error || 'Invalid response from server');
         }
-      },
-      {
-        disease: 'Migraine',
-        triggerSymptoms: ['headache', 'nausea', 'dizziness'],
-        data: {
-          description: 'A type of headache characterized by severe pain',
-          severity: 'moderate',
-          remedies: [
-            'Rest in a dark, quiet room',
-            'Apply cold or warm compress',
-            'Take prescribed migraine medications',
-            'Practice relaxation techniques'
-          ],
-          specialist: 'Neurologist',
-          urgency: 'medium'
-        }
-      },
-      {
-        disease: 'Gastroenteritis',
-        triggerSymptoms: ['nausea', 'fatigue'],
-        data: {
-          description: 'Inflammation of the stomach and intestines',
-          severity: 'mild',
-          remedies: [
-            'Stay hydrated with clear fluids',
-            'Follow BRAT diet (Bananas, Rice, Applesauce, Toast)',
-            'Rest and avoid dairy',
-            'Take probiotics'
-          ],
-          specialist: 'Gastroenterologist',
-          urgency: 'medium'
-        }
+      } catch (error) {
+        console.error('Error calling prediction API:', error);
+        setError(`Analysis failed: ${error.message}. Please check your connection and try again.`);
+      } finally {
+        setIsLoading(false);
       }
-    ];
-
-    const matches = diseaseDatabase.map(disease => {
-      const matchCount = disease.triggerSymptoms.filter(symptom => 
-        symptoms.some(s => s.toLowerCase().includes(symptom.toLowerCase()))
-      ).length;
-      
-      const confidence = Math.min((matchCount / disease.triggerSymptoms.length) * 100, 95);
-      
-      return {
-        ...disease,
-        confidence,
-        probability: confidence / 100,
-        matchCount
-      };
-    }).filter(disease => disease.matchCount > 0)
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 3);
-
-    return matches;
+    }
   };
 
   const filteredSymptoms = getFilteredSymptoms();
@@ -333,6 +236,19 @@ const SymptomChecker = () => {
           </p>
         </div>
 
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3" />
+              <div>
+                <p className="text-red-800 font-medium">Error</p>
+                <p className="text-red-700 text-sm mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress indicator */}
         <div className="mb-10">
           <div className="flex items-center justify-between">
@@ -350,61 +266,71 @@ const SymptomChecker = () => {
         {/* Step 1: Symptom Selection */}
         {currentStep === 1 && (
           <div className="space-y-6">
-            {/* Symptom search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Describe your symptoms (e.g., 'headache', 'feeling tired', 'chest pain')..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
-              {filteredSymptoms.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {filteredSymptoms.map(symptom => (
-                    <div 
-                      key={symptom.id}
-                      className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                      onClick={() => handleAddSymptom(symptom.name)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium capitalize">{symptom.name}</div>
-                          <div className="text-sm text-gray-600">{symptom.description}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Also: {symptom.commonNames?.join(', ')}
+            {/* Loading state for symptoms */}
+            {symptomsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading symptoms...</p>
+              </div>
+            ) : (
+              <>
+                {/* Symptom search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Describe your symptoms (e.g., 'headache', 'feeling tired', 'chest pain')..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  
+                  {filteredSymptoms.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredSymptoms.map(symptom => (
+                        <div 
+                          key={symptom.id}
+                          className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          onClick={() => handleAddSymptom(symptom.name)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium capitalize">{symptom.name}</div>
+                              <div className="text-sm text-gray-600">{symptom.description}</div>
+                              <div className="text-xs text-gray-500 mt-1 capitalize">
+                                Category: {symptom.category}
+                              </div>
+                            </div>
+                            <Plus className="h-5 w-5 text-blue-500 mt-1" />
                           </div>
                         </div>
-                        <Plus className="h-5 w-5 text-blue-500 mt-1" />
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Common symptoms quick add */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-700 mb-3">Quick Add Common Symptoms</h3>
-              <div className="flex flex-wrap gap-2">
-                {['fever', 'headache', 'cough', 'fatigue', 'nausea'].map(symptom => (
-                  <button
-                    key={symptom}
-                    onClick={() => handleAddSymptom(symptom)}
-                    className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                      selectedSymptoms.includes(symptom)
-                        ? 'bg-blue-100 text-blue-700 cursor-not-allowed'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                    disabled={selectedSymptoms.includes(symptom)}
-                  >
-                    {symptom}
-                  </button>
-                ))}
-              </div>
-            </div>
+                {/* Common symptoms quick add */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-700 mb-3">Quick Add Common Symptoms</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSymptoms.slice(0, 8).map(symptom => (
+                      <button
+                        key={symptom.id}
+                        onClick={() => handleAddSymptom(symptom.name)}
+                        className={`px-4 py-2 rounded-full text-sm transition-colors capitalize ${
+                          selectedSymptoms.includes(symptom.name)
+                            ? 'bg-blue-100 text-blue-700 cursor-not-allowed'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                        disabled={selectedSymptoms.includes(symptom.name)}
+                      >
+                        {symptom.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Selected symptoms */}
             <div>
@@ -526,6 +452,7 @@ const SymptomChecker = () => {
             <button
               onClick={() => setCurrentStep(1)}
               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              disabled={isLoading}
             >
               Back
             </button>
@@ -538,12 +465,14 @@ const SymptomChecker = () => {
             disabled={
               (currentStep === 1 && selectedSymptoms.length === 0) || 
               (currentStep === 2 && (!age || !gender || !duration)) ||
-              isLoading
+              isLoading ||
+              symptomsLoading
             }
             className={`px-6 py-3 bg-blue-500 text-white rounded-lg flex items-center ${
               ((currentStep === 1 && selectedSymptoms.length === 0) || 
               (currentStep === 2 && (!age || !gender || !duration)) ||
-              isLoading)
+              isLoading ||
+              symptomsLoading)
                 ? 'opacity-50 cursor-not-allowed'
                 : 'hover:bg-blue-600 transition-colors'
             }`}

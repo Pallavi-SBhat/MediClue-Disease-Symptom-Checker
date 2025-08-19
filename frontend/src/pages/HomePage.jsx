@@ -1,10 +1,28 @@
 import React from 'react';
+import { useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { useUser, SignInButton } from '@clerk/clerk-react';
 import { Stethoscope, Search, MapPin, BookOpen, Shield, UserCheck, Heart, ArrowRight } from 'lucide-react';
 
 const HomePage = () => {
   const { isSignedIn, user } = useUser();
+  useEffect(() => {
+  if (isSignedIn && user?.id) {
+    const email = user.emailAddresses?.[0]?.emailAddress || "";
+    fetch("http://localhost:4000/api/user/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clerkUserId: user.id,
+        name: user.firstName || "",
+        email,
+      }),
+    })
+    .then(res => res.json())
+    .then(data => console.log("User saved:", data))
+    .catch(err => console.error("Error saving user:", err));
+  }
+}, [isSignedIn, user]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -15,22 +33,22 @@ const HomePage = () => {
             Understand Your Symptoms, Find Your Care
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto mb-10">
-            MediClue helps you identify potential health issues based on your symptoms 
+            MediClue helps you identify potential health issues based on your symptoms
             and connects you with the care you need.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             {isSignedIn ? (
               <>
-                <Link 
-                  to="/symptom-checker" 
+                <Link
+                  to="/symptom-checker"
                   className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full hover:bg-blue-50 transition-colors shadow-lg flex items-center justify-center"
                 >
                   <Search className="mr-2 h-5 w-5" />
                   Check Symptoms
                 </Link>
-                <Link 
-                  to="/hospitals" 
+                <Link
+                  to="/hospitals"
                   className="bg-transparent border-2 border-white text-white font-bold py-3 px-8 rounded-full hover:bg-white hover:text-blue-600 transition-colors flex items-center justify-center"
                 >
                   <MapPin className="mr-2 h-5 w-5" />
@@ -67,14 +85,14 @@ const HomePage = () => {
               Your health journey continues. What would you like to do today?
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link 
-                to="/symptom-checker" 
+              <Link
+                to="/symptom-checker"
                 className="bg-blue-500 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors"
               >
                 Start Symptom Check
               </Link>
-              <Link 
-                to="/hospitals" 
+              <Link
+                to="/hospitals"
                 className="bg-gray-100 text-gray-800 font-medium py-2 px-6 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Find Healthcare
@@ -124,7 +142,7 @@ const HomePage = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-16">
             How MediClue Works
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             <div className="flex flex-col items-center text-center p-6 rounded-lg hover:shadow-lg transition-shadow">
               <div className="bg-blue-100 p-4 rounded-full mb-6">
@@ -135,7 +153,7 @@ const HomePage = () => {
                 Sign up and complete your health profile for personalized recommendations.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center text-center p-6 rounded-lg hover:shadow-lg transition-shadow">
               <div className="bg-blue-100 p-4 rounded-full mb-6">
                 <Heart className="h-8 w-8 text-blue-600" />
@@ -145,7 +163,7 @@ const HomePage = () => {
                 Provide your medical history and personal details for accurate analysis.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center text-center p-6 rounded-lg hover:shadow-lg transition-shadow">
               <div className="bg-blue-100 p-4 rounded-full mb-6">
                 <Search className="h-8 w-8 text-blue-600" />
@@ -155,7 +173,7 @@ const HomePage = () => {
                 Describe your symptoms using our intelligent symptom checker.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center text-center p-6 rounded-lg hover:shadow-lg transition-shadow">
               <div className="bg-blue-100 p-4 rounded-full mb-6">
                 <Stethoscope className="h-8 w-8 text-blue-600" />
@@ -175,18 +193,18 @@ const HomePage = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-16">
             Our Health Services
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105">
               <div className="p-8">
                 <h3 className="text-2xl font-bold text-blue-600 mb-4">Advanced Symptom Analysis</h3>
                 <p className="text-gray-600 mb-6">
-                  Our advanced algorithm analyzes your symptoms and provides potential 
+                  Our advanced algorithm analyzes your symptoms and provides potential
                   causes based on your personal health profile and medical databases.
                 </p>
                 {isSignedIn ? (
-                  <Link 
-                    to="/symptom-checker" 
+                  <Link
+                    to="/symptom-checker"
                     className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full transition-colors"
                   >
                     Start Assessment
@@ -201,17 +219,17 @@ const HomePage = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105">
               <div className="p-8">
                 <h3 className="text-2xl font-bold text-blue-600 mb-4">Hospital Finder</h3>
                 <p className="text-gray-600 mb-6">
-                  Locate the best hospitals and specialists near you based on your condition, 
+                  Locate the best hospitals and specialists near you based on your condition,
                   location, and specific healthcare needs.
                 </p>
                 {isSignedIn ? (
-                  <Link 
-                    to="/hospitals" 
+                  <Link
+                    to="/hospitals"
                     className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full transition-colors"
                   >
                     Find Care
@@ -237,15 +255,15 @@ const HomePage = () => {
             Take Control of Your Health Today
           </h2>
           <p className="text-xl mb-10 max-w-3xl mx-auto">
-            {isSignedIn 
+            {isSignedIn
               ? "Continue your health journey with personalized symptom analysis and expert recommendations."
               : "Join thousands of users who trust MediClue for their health assessments. Create your secure account and start your health journey."
             }
           </p>
-          
+
           {isSignedIn ? (
-            <Link 
-              to="/symptom-checker" 
+            <Link
+              to="/symptom-checker"
               className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full hover:bg-blue-50 transition-colors shadow-lg inline-flex items-center"
             >
               <Heart className="mr-2 h-5 w-5" />
