@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Search, Plus, Trash2, ArrowRight, User, AlertCircle } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 const SymptomChecker = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,6 +220,8 @@ const SymptomChecker = () => {
   const filteredSymptoms = getFilteredSymptoms();
 
   return (
+    <>
+    <Navbar/>
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
         {/* Header with user info */}
@@ -492,6 +496,8 @@ const SymptomChecker = () => {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 };
 

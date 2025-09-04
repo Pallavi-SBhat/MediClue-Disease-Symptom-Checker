@@ -1,39 +1,55 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ThumbsUp, MapPin, ArrowRight, Home, Brain, Activity, Clock, User } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 const ResultsPage = () => {
+  const{user}=useUser();
   const [medicalData, setMedicalData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        const response = await fetch("http://localhost:4000/api/results", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: "12345" }) // pass whatever data
-        });
+  const fetchResults = async () => {
+    try {
+      const response = await fetch("http://localhost:4000/api/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: "12345" }) // pass whatever data
+      });
 
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch results");
-        }
-
-        const data = await response.json();
-        setMedicalData(data);
-      } catch (err) {
-        console.error(err);
-        setError("Error loading analysis results");
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error("Failed to fetch results");
       }
-    };
 
-    fetchResults();
-  }, []);
+      const data = await response.json();
+      setMedicalData(data);
 
+      // 🔽 Save results to DB
+      await fetch("http://localhost:4000/api/medical/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clerkUserId:user.id , // replace with logged-in user
+          age: data.patient_info?.age,
+          gender: data.patient_info?.gender,
+          symptoms: data.symptoms, 
+          predictions: data.predictions,
+          userProfile: data.userProfile,
+        }),
+      });
+    } catch (err) {
+      console.error(err);
+      setError("Error loading analysis results");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchResults();
+}, [user]);
 
   const getSeverityColor = (severity) => {
     switch (severity?.toLowerCase()) {
@@ -108,6 +124,8 @@ const ResultsPage = () => {
   }
 
   return (
+    <>
+    <Navbar/>
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
         <div className="flex items-center mb-8">
@@ -376,6 +394,8 @@ const ResultsPage = () => {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 };
 

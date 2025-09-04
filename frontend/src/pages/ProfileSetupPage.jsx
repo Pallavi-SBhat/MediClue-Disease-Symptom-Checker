@@ -52,11 +52,13 @@ const ProfileSetupPage = () => {
     }));
   };
 
-  const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
+const handleNext = () => {
+  const form = document.querySelector("form"); 
+  if (form && form.reportValidity()) {  // validate current inputs
+    setCurrentStep(currentStep + 1);
+  }
+};
+
 
   const handlePrevious = () => {
     if (currentStep > 1) {
@@ -139,6 +141,8 @@ const ProfileSetupPage = () => {
             value={formData.height}
             onChange={handleInputChange}
             placeholder="170"
+            min="50"
+            max="300"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
@@ -152,6 +156,8 @@ const ProfileSetupPage = () => {
             value={formData.weight}
             onChange={handleInputChange}
             placeholder="70"
+            min="02"
+            max="300"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
@@ -184,7 +190,9 @@ const ProfileSetupPage = () => {
             name="phone"
             value={formData.phone}
             onChange={handleInputChange}
-            placeholder="+1 (555) 123-4567"
+            placeholder="enter your phone number"
+            pattern="[0-9]{10}"
+            title="Phone number must be exactly 10 digits"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
@@ -261,6 +269,8 @@ const ProfileSetupPage = () => {
                 value={formData.emergencyContactName}
                 onChange={handleInputChange}
                 placeholder="Emergency contact name"
+                pattern="^[A-Za-z\s]+$"
+                title="Name must contain only letters"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -273,7 +283,9 @@ const ProfileSetupPage = () => {
                 name="emergencyContactPhone"
                 value={formData.emergencyContactPhone}
                 onChange={handleInputChange}
-                placeholder="+1 (555) 123-4567"
+                placeholder="enter emergency phone number"
+                pattern="[0-9]{10}"
+                title="Phone number must be exactly 10 digits"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -311,6 +323,8 @@ const ProfileSetupPage = () => {
                 value={formData.address}
                 onChange={handleInputChange}
                 placeholder="123 Main Street"
+                pattern="^[A-Za-z0-9\s,.-/]+$"
+                title="Address can only contain letters, numbers, spaces, commas, dots, hyphens, and slashes"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -323,7 +337,9 @@ const ProfileSetupPage = () => {
                 name="city"
                 value={formData.city}
                 onChange={handleInputChange}
-                placeholder="New York"
+                placeholder="enter your city"
+                pattern="^[A-Za-z\s]+$"
+                title="City must contain only letters"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -336,7 +352,9 @@ const ProfileSetupPage = () => {
                 name="state"
                 value={formData.state}
                 onChange={handleInputChange}
-                placeholder="NY"
+                placeholder="Karnataka"
+                pattern="^[A-Za-z\s]+$"
+                title="State must contain only letters"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -350,6 +368,8 @@ const ProfileSetupPage = () => {
                 value={formData.zipCode}
                 onChange={handleInputChange}
                 placeholder="10001"
+                pattern="^\d{5,6}$"
+                title="ZIP code must be 5 or 6 digits"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />

@@ -1,58 +1,64 @@
 const express = require("express");
-const axios = require("axios");
-const UserMedicalData = require("../models/UserMedicalData");
+const UserMedicalData = require("../models/userMedicalData");
+
 const router = express.Router();
 
-// Proxy endpoint: Symptoms
-router.get("/symptoms", async (req, res) => {
+/**
+ * Save or update medical analysis results (Upsert)
+ */
+router.post("/save", async (req, res) => {
   try {
-    const response = await axios.get("http://localhost:5000/api/symptoms");
-    res.json(response.data);
-  } catch (error) {
-    console.error("Error fetching symptoms from Flask:", error);
-    res.status(500).json({ success: false, error: "Failed to fetch symptoms" });
-  }
-});
+    const { clerkUserId, age, gender, symptoms, predictions, userProfile } = req.body;
 
-// Save prediction results
-router.post("/predict", async (req, res) => {
-  const { clerkUserId, age, gender, symptoms, userProfile } = req.body;
-  console.log("✅ Received in Node:", req.body);
+    if (!clerkUserId) {
+      return res.status(400).json({ error: "clerkUserId is required" });
+    }
 
-  try {
-    // Call Flask API
-    const response = await axios.post("http://localhost:5000/api/predict", req.body, {
-      headers: { "Content-Type": "application/json" },
-    });
-
-    const data = response.data;
-
-    // Save in MongoDB (upsert: create if not exists)
-    const updatedUser = await UserMedicalData.findOneAndUpdate(
-      { clerkUserId },
-      { age, gender, symptoms, predictions: data.predictions, timestamp: new Date(), userProfile },
-      { upsert: true, new: true }
+    const updatedRecord = await UserMedicalData.findOneAndUpdate(
+      { clerkUserId }, // find by Clerk ID
+      {
+        $set: {
+          age,
+          gender,
+          symptoms: symptoms || [],
+          predictions: predictions || [],
+          userProfile: userProfile || {},
+          timestamp: new Date(),
+        },
+      },
+      { new: true, upsert: true } // ✅ create if not exists, return updated doc
     );
 
-    console.log("✅ Saved to MongoDB:", updatedUser);
-
-    res.json(data);
+    res.status(201).json({ success: true, record: updatedRecord });
   } catch (error) {
-    console.error("Error calling Flask API or saving:", error);
-    res.status(500).json({ success: false, error: "Prediction failed" });
+    console.error("Error saving medical data:", error);
+    res.status(500).json({ success: false, error: "Failed to save medical data" });
   }
 });
 
-// Return stored results
-router.get("/results/:clerkUserId", async (req, res) => {
-  const { clerkUserId } = req.params;
+
+/**
+ * Get latest results for a user
+ */
+router.post("/results", async (req, res) => {
   try {
-    const data = await UserMedicalData.findOne({ clerkUserId });
-    if (!data) return res.status(404).json({ error: "No medical data found" });
-    res.json(data);
+    const { clerkUserId } = req.body;
+
+    if (!clerkUserId) {
+      return res.status(400).json({ error: "clerkUserId required" });
+    }
+
+    const medicalRecord = await UserMedicalData.findOne({ clerkUserId })
+      .sort({ timestamp: -1 });
+
+    if (!medicalRecord) {
+      return res.status(404).json({ error: "No medical data found" });
+    }
+
+    res.json(medicalRecord);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch user data" });
+    console.error("Error fetching results:", error);
+    res.status(500).json({ error: "Failed to fetch results" });
   }
 });
 

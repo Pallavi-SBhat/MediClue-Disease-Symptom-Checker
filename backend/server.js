@@ -4,7 +4,7 @@ const axios = require("axios");
 const mongoose = require("mongoose");
 
 const userRoutes = require("./routes/userRoutes");
-
+const medicalRoutes = require("./routes/medicalRoutes");
 const app = express();
 const PORT = 4000;
 
@@ -57,6 +57,8 @@ app.post("/api/results", (req, res) => {
 
 // New user route
 app.use("/api/user", userRoutes);
+
+app.use("/api/medical", medicalRoutes);
 
 app.get("/test", (req, res) => {
   res.send("Node server is working!");
